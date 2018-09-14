@@ -1,5 +1,5 @@
 import re
-import urlparse
+import urllib.parse as urlparse
 from bs4 import BeautifulSoup
 
 class HtmlParser(object):
