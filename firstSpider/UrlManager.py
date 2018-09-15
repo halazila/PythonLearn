@@ -1,6 +1,6 @@
 class UrlManager(object):
 	"""URL地址管理类"""
-	def __init__(self, arg):
+	def __init__(self):
 		self.new_urls = set()	# 未爬取URL集合，这里选取集合作为数据结构，目的是为了去重
 		self.old_urls = set()	# 已爬取URL集合
 

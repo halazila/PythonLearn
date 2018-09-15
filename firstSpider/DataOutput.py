@@ -9,7 +9,7 @@ class DataOutput(object):
 	def store_data(self, data):
 		if data is None:
 			return
-		self.datas.append()
+		self.datas.append(data)
 
 	def output_html(self):
 		fout = codecs.open('baike.html', 'w', encoding='utf-8')
