@@ -14,14 +14,14 @@ QueueManager.register('get_result_queue')
 server_addr = '127.0.0.1'
 print('Connect to server %s' % server_addr)
 # 端口和验证口令必须与服务进程保持一致
-m = QueueManager(address=(server_addr,8001), authkey='hashci')
+m = QueueManager(address=(server_addr,8001), authkey=b'hashci')
 # 网络连接
 m.connect()
 # 第三步：获取Queue的对象
 task = m.get_task_queue()
 result = m.get_result_queue()
 # 第四步：从task队列获取任务，并把结果写入result队列
-while not task.empty(:
+while not task.empty():
 	image_url = task.get(True,timeout=5)
 	print('run task download %s' % image_url)
 	time.sleep(1)
