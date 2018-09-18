@@ -1,7 +1,9 @@
-from queue import Queue
-import HtmlParser
-import HtmlDownloader
+from multiprocessing import Queue
+from HtmlParser import HtmlParser
+from HtmlDownloader import HtmlDownloader
 from multiprocessing.managers import BaseManager
+import sys
+sys.setrecursionlimit(10000)
 
 class SpiderWork(object):
 	"""爬虫调度器 SpiderWork"""
@@ -22,7 +24,7 @@ class SpiderWork(object):
 		while True:
 			try:
 				if not self.task.empty():
-					url = self.task.get()
+					url = self.task.get(True)
 				if url == 'end':
 					print('爬虫节点接收到停止通知')
 					self.result.put({'new_urls':'end','data':'end'})
@@ -30,6 +32,7 @@ class SpiderWork(object):
 				print('爬虫节点正在解析： %s' % url.encode('utf-8'))
 				content = self.downloader.download(url)
 				new_urls,data = self.parser.parser(url,content)
+				print(new_urls)
 				self.result.put({'new_urls':new_urls,'data':data})
 			except EOFError as e:
 				print('连接工作节点失败')

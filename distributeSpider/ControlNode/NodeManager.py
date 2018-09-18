@@ -1,20 +1,17 @@
 # encoding:utf-8
 # taskManager.py for windows
-from queue import Queue
+from multiprocessing import Queue
 from multiprocessing.managers import BaseManager
 from multiprocessing import freeze_support
 from multiprocessing import Process
-import UrlManager
-import HtmlParser
-import HtmlDownloader
-import DataOutput
+from UrlManager import UrlManager
+from HtmlParser import HtmlParser
+from HtmlDownloader import HtmlDownloader
+from DataOutput import DataOutput
 import time
+import sys
+sys.setrecursionlimit(10000)
 
-def get_task(task_queue):
-	return task_queue
-
-def get_result(result_queue):
-	return result_queue
 
 class NodeManager(BaseManager):
 	"""控制调度器 NodeManager"""
@@ -27,8 +24,8 @@ class NodeManager(BaseManager):
 		:param result_q：结果队列
 		:return:
 		'''
-		BaseManager.register('get_task_queue',callable=get_task(url_q))
-		BaseManager.register('get_result_queue',callable=get_result(result_q))
+		BaseManager.register('get_task_queue',callable=lambda:url_q)
+		BaseManager.register('get_result_queue',callable=lambda:result_q)
 		manager = BaseManager(address=('127.0.0.1',8001),authkey=b'hashci')
 		return manager
 
@@ -50,7 +47,7 @@ class NodeManager(BaseManager):
 			# 将从result_solve_proc获取到的URL添加到URL管理器
 			try:
 				if not conn_q.empty():
-					urls = conn_q.get()
+					urls = conn_q.get(True)
 					url_manager.add_new_urls(urls)
 			except Exception as e:
 				time.sleep(0.1)
@@ -75,7 +72,7 @@ class NodeManager(BaseManager):
 		output = DataOutput()
 		while True:
 			if not store_q.empty():
-				data = store_q.get()
+				data = store_q.get(True)
 				if data == 'end':
 					print('存储进程接收通知然后结束')
 					output.output_end(output.filepath)
@@ -84,22 +81,22 @@ class NodeManager(BaseManager):
 			else:
 				time.sleep(0.1)
 
-	if __name__ == '__main__':
-		# 初始化4个队列
-		url_q = Queue()
-		result_q = Queue()
-		conn_q = Queue()
-		store_q = Queue()
-		# 创建分布式管理器
-		node = NodeManager()
-		manager = node.start_Manager(url_q,result_q)
-		url_manager_proc = Process(target=node.url_manager_proc, args=(url_q,conn_q,'http://baike.baidu.com/view/284853.htm'))
-		result_solve_proc = Process(target=node.result_solve_proc, args=(result_q,conn_q,store_q))
-		store_proc = Process(target=node.store_proc, args=(store_q))
-		url_manager_proc.start()
-		result_solve_proc.start()
-		store_proc.start()
-		manager.get_server().serve_forever()
+if __name__ == '__main__':
+	# 初始化4个队列
+	url_q = Queue()
+	result_q = Queue()
+	conn_q = Queue()
+	store_q = Queue()
+	# 创建分布式管理器
+	node = NodeManager()
+	manager = node.start_Manager(url_q,result_q)
+	url_manager_proc = Process(target=node.url_manager_proc, args=(url_q,conn_q,'http://baike.baidu.com/view/284853.htm'))
+	result_solve_proc = Process(target=node.result_solve_proc, args=(result_q,conn_q,store_q))
+	store_proc = Process(target=node.store_proc, args=(store_q,))
+	url_manager_proc.start()
+	result_solve_proc.start()
+	store_proc.start()
+	manager.get_server().serve_forever()
 
 
 
