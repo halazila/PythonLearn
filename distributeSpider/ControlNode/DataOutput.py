@@ -1,4 +1,4 @@
-# coding:utf-8
+# encoding:utf-8
 import codecs
 import time
 class DataOutput(object):

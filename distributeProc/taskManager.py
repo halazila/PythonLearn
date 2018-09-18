@@ -1,4 +1,4 @@
-# coding:utf-8
+# encoding:utf-8
 # taskManager.py for windows
 from queue import Queue
 from multiprocessing.managers import BaseManager
