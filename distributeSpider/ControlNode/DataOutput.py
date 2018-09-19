@@ -42,6 +42,13 @@ class DataOutput(object):
 			self.datas.remove(data)
 		fout.close()
 
+	def output_alldata(self):
+		'''
+		将所有的数据输出到文件
+		'''
+		if self.datas is not None and len(self.datas) > 0:
+			output_html(self.path)
+
 	def output_end(self,path):
 		'''
 		写HTML尾部

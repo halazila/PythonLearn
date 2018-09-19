@@ -3,7 +3,7 @@ from HtmlParser import HtmlParser
 from HtmlDownloader import HtmlDownloader
 from multiprocessing.managers import BaseManager
 import sys
-sys.setrecursionlimit(10000)
+sys.setrecursionlimit(30000)
 
 class SpiderWork(object):
 	"""爬虫调度器 SpiderWork"""
@@ -32,7 +32,6 @@ class SpiderWork(object):
 				print('爬虫节点正在解析： %s' % url.encode('utf-8'))
 				content = self.downloader.download(url)
 				new_urls,data = self.parser.parser(url,content)
-				print(new_urls)
 				self.result.put({'new_urls':new_urls,'data':data})
 			except EOFError as e:
 				print('连接工作节点失败')
