@@ -1,10 +1,9 @@
 import requests
 import config
 import json
-import demjson
 import re
 from bs4 import BeautifulSoup
-
+import pandas as pd
 
 user_agent = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36'
 headers = {'User-Agent':user_agent}
@@ -17,7 +16,7 @@ def _get_kline(s_id, m_id, k_type):
 	    m_id (str): 市场代码, 'sh'--上证所， 'sz'--深证所
 	    k_type (str): k线数据类型，k--日K, wk--周K, mk--月K, m5k--5分钟K线, m30k--30分钟K线, m60k--60分钟K线
 	Returns:
-		dict: {name, market, code, data}
+		dict: {name:股票名称, market:m_id, code:s_id, data:[[时间，开盘价，收盘价，最高价，最低价，成交量，成交额，振幅], ...]}
 	"""
 	market_id = config.EM_Market_Cons[m_id]
 	sm_id = s_id + market_id
@@ -28,7 +27,11 @@ def _get_kline(s_id, m_id, k_type):
 	pattern = re.compile(r'jsonp\d+\((.*)\)', re.DOTALL)
 	json_data = re.findall(pattern, r.text)[0]
 	data = json.loads(json_data)
-	res = {'name':data['name'], 'market':m_id, 'code':data['code'], 'data':data['data']}
+	k_line_data = []
+	for dd in data['data']:
+		dd_list = dd.split(',')
+		k_line_data.append(dd_list)
+	res = {'name':data['name'], 'market':m_id, 'code':data['code'], 'data':k_line_data}
 	return res
 
 def _get_all_boards(board_type = 'industry'): 
@@ -96,21 +99,71 @@ def _get_now_data_by_market(market_id):
 
 def _get_now_data_by_stock(stock_id, market_id):
 	"""Summary
-	获取个股的最新行情
+	获取个股的最新价格，返回最新10个时间节点的数据
 	
 	Args:
 	    stock_id (str): 股票代码
-	    market_id (str): 市场代码
+	    market_id (str): 市场代码, 'sh' or 'sz'
 	
 	Returns:
 	    dict: 个股行情信息
 	"""
-
+	url = config.EM_MDStock_Url + ('&id=%s' % (stock_id + config.EM_Market_Cons[market_id]))
+	r = requests.get(url, headers=headers)
+	pattern = re.compile(r'jQuery38657\((.*)\)', re.DOTALL)
+	json_data = re.findall(pattern, r.text)[0]
+	json_data = json.loads(json_data)
+	res = []
+	if json_data['message'] == 'ok':
+		data = json_data['value']['data']
+		for dls in data:
+			ddata = {'time':dls['t'], 'price':dls['p']}
+			res.append(ddata)
 	return res
+
+def _get_earning_report_by_stock(stock_id):
+	"""Summary
+	获取个股的业绩报表
+	Args:
+	    stock_id (string): 6位股票代码
+	
+	Returns:
+	    list: 业绩报表列表
+	"""
+	filter_param = '&filter=(scode=%s)' % stock_id
+	url = config.EM_YJBBStock_Url + filter_param
+	r = requests.get(url, headers=headers)
+	res = r.text
+	return res
+
+def _get_earning_report_by_stock_to_csv(stock_id, filename=None):
+	"""Summary
+	获取个股的业绩报表并保存为CSV文件
+	Args:
+	    stock_id (str): 6位股票代码
+	    filename (str): 文件名称
+	
+	Returns:
+	    None: Description
+	"""
+	if filename is None:
+		filename = 'earning_report_%s.csv' % stock_id
+	data = _get_earning_report_by_stock(stock_id)
+	data = json.loads(data)
+	df = pd.DataFrame(data)
+	df['gxl'] = df['gxl'] * 100
+	df = df[list(config.EM_YJBB_Dict.keys())]
+	df.rename(columns=config.EM_YJBB_Dict, inplace=True)
+	df.to_csv(path_or_buf=filename, encoding='GBK', columns=config.EM_YJBB_CSV_Columns)
+	return
 	
 if __name__ == '__main__':
-	print(_get_kline('600029', 'sh', 'k'))
+	# print(_get_kline('600029', 'sh', 'k'))
 	# print(_get_all_boards('industry'))
 	# stock = _get_now_data_by_market('xg')
 	# print(len(stock))
 	# print(stock)
+	# print(_get_now_data_by_stock('000001', 'sz'))
+	# print(_get_earning_report_by_stock('000001'))
+	# _get_earning_report_by_stock_to_csv('000001')
+	_get_earning_report_by_stock_to_csv('600519')
