@@ -50,6 +50,16 @@
 # print(captcha_array)
 
 
+from PIL import Image
+import os
 
-import time
-print(time.time())
+pathdir = './image/test/'
+files = os.listdir(pathdir)
+
+for f in files:
+	filename = os.path.join(pathdir, f)
+	image = Image.open(filename)
+	image = image.convert('L')
+	image.save(os.path.join('./test_grey/', f))
+
+
